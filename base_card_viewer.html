@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Base Card Viewer — Pop-Up Mechanism Foundation</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1d23; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #eee; }
+  #canvas-wrap { position: absolute; inset: 0; }
+  #panel {
+    position: absolute; top: 16px; left: 16px; width: 300px;
+    background: rgba(24,26,32,0.9); border: 1px solid #3a3d47; border-radius: 10px;
+    padding: 16px 18px; box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  }
+  #panel h1 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+  #panel .sub { font-size: 11px; color: #9a9ea8; margin-bottom: 14px; }
+  .row { margin-bottom: 12px; }
+  .row label { display: flex; justify-content: space-between; font-size: 12px; color: #c7cad1; margin-bottom: 4px; }
+  .row input[type=range] { width: 100%; }
+  .btnrow { display: flex; gap: 8px; margin-top: 4px; }
+  button {
+    flex: 1; background: #2c2f3a; color: #eee; border: 1px solid #444858; border-radius: 6px;
+    padding: 7px 10px; font-size: 12px; cursor: pointer;
+  }
+  button:hover { background: #383c4a; }
+  button.active { background: #4a6cf7; border-color: #4a6cf7; }
+  #coords { margin-top: 12px; border-top: 1px solid #333644; padding-top: 10px; font-size: 11px; color: #a7abb4; }
+  #coords table { width: 100%; border-collapse: collapse; }
+  #coords td { padding: 2px 0; font-family: "SF Mono", Menlo, monospace; }
+  #coords td.name { color: #cfd2d9; }
+  #legend { position: absolute; bottom: 16px; left: 16px; font-size: 11px; color: #7d818b; line-height: 1.5; }
+  #legend span.valley { color: #4a9eff; }
+  #legend span.mountain { color: #ff6b6b; }
+</style>
+</head>
+<body>
+<div id="canvas-wrap"></div>
+
+<div id="panel">
+  <h1>Base Card</h1>
+  <div class="sub">Foundation viewer — mirrors the Point/Crease model in main.cpp</div>
+
+  <div class="row">
+    <label><span>Card angle (open ↔ closed)</span><span id="angleVal">180°</span></label>
+    <input type="range" id="angleSlider" min="0" max="180" step="1" value="180" />
+  </div>
+
+  <div class="btnrow">
+    <button id="playBtn">▶ Auto open/close</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div id="coords"></div>
+</div>
+
+<div id="legend">
+  <div><span class="valley">━</span> central fold (valley), origin → topMiddle</div>
+  <div>drag to orbit · scroll to zoom</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* ------------------------------------------------------------------
+   Data model — deliberately mirrors the C++ structs in Mechanism.hpp
+   so this file can grow alongside the simulator (Points, Creases,
+   later V-fold / single-slit mechanisms glued onto this base card).
+------------------------------------------------------------------- */
+const baseCardPoints = [
+  { name: "origin",     x:  0, y: 0, z: 0 },
+  { name: "bottomLeft", x: -1, y: 0, z: 0 },
+  { name: "topLeft",    x: -1, y: 1, z: 0 },
+  { name: "topMiddle",  x:  0, y: 1, z: 0 },
+  { name: "topRight",   x:  1, y: 1, z: 0 },
+  { name: "bottomRight",x:  1, y: 0, z: 0 },
+];
+
+const centralFold = { i: "origin", j: "topMiddle", type: "Valley" };
+
+// Convenience lookup
+const P = Object.fromEntries(baseCardPoints.map(p => [p.name, p]));
+
+/* Panels are defined as ordered vertex-name loops (matching main.cpp's
+   winding), one on each side of the central fold line (the y-axis). */
+const leftPanelNames  = ["origin", "bottomLeft", "topLeft", "topMiddle"];
+const rightPanelNames = ["origin", "topMiddle", "topRight", "bottomRight"];
+
+/* ------------------------------------------------------------------
+   Three.js scene setup
+------------------------------------------------------------------- */
+const wrap = document.getElementById("canvas-wrap");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1b1d23);
+
+const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.01, 100);
+camera.position.set(2.6, 2.0, 3.2);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+wrap.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.5, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.update();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 1.1));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(3, 5, 2);
+scene.add(dirLight);
+
+const grid = new THREE.GridHelper(6, 24, 0x3a3d47, 0x2a2d36);
+scene.add(grid);
+const axes = new THREE.AxesHelper(1.4);
+scene.add(axes);
+
+/* ------------------------------------------------------------------
+   Build the two page panels as flat quads pivoted on Groups whose
+   local origin sits exactly on the fold line (x=0). Rotating a Group
+   about the Y axis therefore hinges the panel about that line, since
+   every vertex with x=0 stays fixed under a Y rotation.
+------------------------------------------------------------------- */
+function buildPanelMesh(vertexNames, color) {
+  const verts = vertexNames.map(n => P[n]);
+  // Two triangles (quad) using the 4 ordered corner points
+  const positions = new Float32Array([
+    verts[0].x, verts[0].y, verts[0].z,
+    verts[1].x, verts[1].y, verts[1].z,
+    verts[2].x, verts[2].y, verts[2].z,
+
+    verts[0].x, verts[0].y, verts[0].z,
+    verts[2].x, verts[2].y, verts[2].z,
+    verts[3].x, verts[3].y, verts[3].z,
+  ]);
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geom.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardMaterial({
+    color, side: THREE.DoubleSide, roughness: 0.75, metalness: 0.02,
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geom),
+    new THREE.LineBasicMaterial({ color: 0x0a0c10 })
+  );
+
+  const group = new THREE.Group();
+  group.add(mesh);
+  group.add(edges);
+  return group;
+}
+
+const leftGroup = buildPanelMesh(leftPanelNames, 0xe8b34a);
+const rightGroup = buildPanelMesh(rightPanelNames, 0x4ab3e8);
+scene.add(leftGroup);
+scene.add(rightGroup);
+
+// Highlight the central fold line itself
+const foldGeom = new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(P.origin.x, P.origin.y, P.origin.z),
+  new THREE.Vector3(P.topMiddle.x, P.topMiddle.y, P.topMiddle.z),
+]);
+const foldLine = new THREE.Line(foldGeom, new THREE.LineBasicMaterial({ color: 0x4a9eff, linewidth: 2 }));
+scene.add(foldLine);
+
+/* ------------------------------------------------------------------
+   Card angle -> hinge rotation.
+   cardAngle: 180 = fully open (flat, one plane), 0 = fully closed
+   (both panels folded together, coincident).
+   fold = (180 - cardAngle) / 2, applied with opposite sign to each
+   panel group so they close symmetrically about the shared fold line.
+------------------------------------------------------------------- */
+function applyCardAngle(cardAngleDeg) {
+  const fold = THREE.MathUtils.degToRad((180 - cardAngleDeg) / 2);
+  leftGroup.rotation.y = fold;
+  rightGroup.rotation.y = -fold;
+  updateCoordsPanel(cardAngleDeg);
+}
+
+/* ------------------------------------------------------------------
+   Live coordinate readout — shows where each named point actually
+   ends up in world space at the current fold angle, since that's the
+   quantity the analytic mechanism solutions (Glassner) ultimately
+   need to drive the pop-up pieces glued on top of this base card.
+------------------------------------------------------------------- */
+const coordsEl = document.getElementById("coords");
+const tmpVec = new THREE.Vector3();
+
+function worldPosOf(name, group, localVerts) {
+  const local = localVerts.find(v => v.name === name);
+  tmpVec.set(local.x, local.y, local.z);
+  group.updateMatrixWorld(true);
+  return tmpVec.applyMatrix4(group.matrixWorld);
+}
+
+function updateCoordsPanel(cardAngleDeg) {
+  document.getElementById("angleVal").textContent = Math.round(cardAngleDeg) + "°";
+
+  const rows = [];
+  const leftVerts = leftPanelNames.map(n => P[n]);
+  const rightVerts = rightPanelNames.map(n => P[n]);
+  const seen = new Set();
+
+  baseCardPoints.forEach(p => {
+    let v;
+    if (leftPanelNames.includes(p.name)) v = worldPosOf(p.name, leftGroup, leftVerts);
+    else v = worldPosOf(p.name, rightGroup, rightVerts);
+    if (seen.has(p.name)) return;
+    seen.add(p.name);
+    rows.push(`<tr><td class="name">${p.name}</td><td>${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}</td></tr>`);
+  });
+
+  coordsEl.innerHTML = `<table>${rows.join("")}</table>`;
+}
+
+/* ------------------------------------------------------------------
+   UI wiring
+------------------------------------------------------------------- */
+const slider = document.getElementById("angleSlider");
+slider.addEventListener("input", () => applyCardAngle(parseFloat(slider.value)));
+
+let playing = false;
+let dir = -1; // start by closing from fully open
+const playBtn = document.getElementById("playBtn");
+playBtn.addEventListener("click", () => {
+  playing = !playing;
+  playBtn.classList.toggle("active", playing);
+  playBtn.textContent = playing ? "⏸ Pause" : "▶ Auto open/close";
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  slider.value = 180;
+  applyCardAngle(180);
+  playing = false;
+  playBtn.classList.remove("active");
+  playBtn.textContent = "▶ Auto open/close";
+});
+
+applyCardAngle(180);
+
+/* ------------------------------------------------------------------
+   Render loop
+------------------------------------------------------------------- */
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (playing) {
+    let angle = parseFloat(slider.value) + dir * dt * 60; // ~60 deg/sec
+    if (angle <= 0) { angle = 0; dir = 1; }
+    if (angle >= 180) { angle = 180; dir = -1; }
+    slider.value = angle;
+    applyCardAngle(angle);
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener("resize", () => {
+  camera.aspect = wrap.clientWidth / wrap.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+});
+</script>
+</body>
+</html>
