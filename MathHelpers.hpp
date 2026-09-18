@@ -10,8 +10,8 @@ Eigen::Vector3f RodriguesRotation(const Eigen::Vector3f v, const Eigen::Vector3f
     // might need to normalize k? check wikipedia
 
     Eigen::Vector3f v_rot = v*cos(theta) + (k.cross(v))*sin(theta) + k*(k.dot(v))*(1-cos(theta));
-    return v_rot;
-}
+    return v_rot; 
+};
 
 Eigen::Vector3f IntersectThreeSpheres(const Eigen::Vector3f D, const float rD, const Eigen::Vector3f A, const float rA, const Eigen::Vector3f C, const float rC, const int flag){
     // gonna use Andrew Glassner's approach for this, which is:

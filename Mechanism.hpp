@@ -6,33 +6,33 @@
 #include <string>
 
 //Lets focus on modeling the SYMMETRIC v-fold only.
-//Assume every v-fold is a simple triangle with points A,D, and Cw
-// and assume the user will define each v-fold and identify the points for you.
-// Later I want to write a funciton that identifies points A,D, and Cw given the polygonal shape and the central fold.
 
-class Mechanism; // can't have a pointer before the thing exists, so we create this forward declaration!
+//      s
+//     /|\
+//    / | \
+//   /__|__\
+//   g  g  g
+//      ^ crease line
+
+// Assume every v-fold is a simple triangle with 1 crease, three glue points, glue points are at the bottom edge
+// Assume the flat pattern is given in a way such that the vertices are connected cyclicly 
 
 enum class PointType{
-    rodriguesPoints, // I think all rodgrigues points will also be glue points
     gluePoints, 
     spherePoints, 
-    Origin, 
-    BottomLeft, 
-    BottomRight, 
-    General
+    general
 };
 
-struct Point { // a point is like a vertex with extra information, it has coordinates and it has an identity A,D, or Cw. point positions are defined by the applying the x,y weights to the unit vectors of the pointed to mechanisms
-    Eigen::Vector3f weights; // these should always be calculated for you
-    PointType type; // this should be identified for you
-    //FIX: int id; // what vertix this is - this is redundant cuz we can assume that point index and vertex index are the same, but I think this will make it easier to track
-    //Mechanism* pointMech; // what mechanism this points to
+struct Point { // Every vertex maps to a point. A point has a type and it has weights for the localframe to tell you where it is relative to the true local origin
+    Eigen::Vector3f weights;
+    PointType type; 
 };
 
-struct GlueDot {
+struct GlueDot { // currently on mechanism m, gluing to mechanism n, where n<m
     int i; // index of the vertex on this mechanism that you want to glue
-    Eigen::Vector3f gluePosition; // the x,y,z position of where you want to glue on the flat pattern
-    Mechanism* glueMech; // what mechanism it glues to 
+    int n; // what mechanism it glues to 
+    Eigen::Vector3f gluePosition; // the x,y,z position of where you want to glue on the flat pattern on mechanism n
+    Eigen::Vector3f glueWeights; // the weights of the gluePosition using mechanisms n's frame
 };
 
 enum class CreaseType {
@@ -40,67 +40,84 @@ enum class CreaseType {
     Valley
 };
 
-struct Crease { // a crease is a mountain or valley fold that connects vertices i and j. The crease should always connect form the origin (also a glue point?) to a sphere point. 
+struct Crease { // a crease is a mountain or valley fold that connects vertices i and j. The crease connects a bottom point to a sphere point. 
     int i;
     int j;
     CreaseType type;
 };
 
 struct CoordFrame { // a coordinate frame is a set of three unit vectors which can be used to access any coordinate on the mechanism (does not need to span R3)
-    Eigen::Vector3f u; // I think the unit vectors can be implicitely caclucated from the points
+    Eigen::Vector3f u; 
     Eigen::Vector3f v;
     Eigen::Vector3f w;
+    Eigen::Vector3f origin; // origin is going to be it's own point not associated with the pattern
+    // origin is always defined in x,y,z coordinates, but the origin for currentposition can look different than the flat origin position
+    // the origin can always be derived from the current position
+    // for now, the origin is defined as the bottom crease vertex position, later the origin might be off the pattern
 };
 
 class Mechanism{
-    private:
+    private: // FIX: is there a way to make it so that things that "never change" are innaccesible by the user? actually aren't all these private members innaccessible by the user?
         std::vector<Eigen::Vector3f> flatPos; // given by user, never changes
         std::vector<Crease> creases; // given by user, never changes
-        std::vector<GlueDot> glueDots; //given by user, never changes
-        std::vector<int> rodriguesPoints; // only here to identify the base card, given by user, never changes, but for all mechanisms except the base card this will be empty
+        std::vector<GlueDot> glueDots; //given by user, never changes. Part of glueDots will be calculated later in the PopUpCard class, but the user needs to call calculateglueweights
+        bool baseCard; // given by user, never changes. If this mechanism is the base card, this is turned on. Should only have 1 base card
         int id; // what mechanism is this, given by user, never changes
 
         std::vector<Eigen::Vector3f> currentPos; // calculated here, will change over time
         std::vector<Point> points; // calculated here, never changes
-        CoordFrame frame; // calculated here, changes over time
+        CoordFrame flatFrame; // calculated here, does not change
+        CoordFrame currentFrame; // calculated here, changes over time
 
     public:
     //Constructor
     Mechanism(const std::vector<Eigen::Vector3f>& _flatPos,
               const std::vector<Crease>& _creases,
               const std::vector<GlueDot>& _glueDots, 
-              const std::vector<int>& _rodriguesPoints,
+              const bool& _baseCard, // points 4 and 5 on the base card will always be the one we rotate
               int _id) 
-              : flatPos(_flatPos), // the stuff after the : is the initializer list
+              : flatPos(_flatPos),
               creases(_creases), 
               glueDots(_glueDots),
-              rodriguesPoints(_rodriguesPoints), 
+              baseCard(_baseCard), 
               id(_id) {
-                // put calculated things here
-                currentPos = flatPos; // for now, but currentPos will change over time
+                currentPos = flatPos;
                 points = identifyPointTypes();
-                frame = calculateLocalFrame();
+                flatFrame = calculateFrameAndOrigin();
+                currentFrame = flatFrame;
                 points = calculateWeights();
               };
 
-
-
     //Selectors
     Point& getPoint(int i);
-    Eigen::Vector3f getCurrentVertex(int i);
-    Eigen::Vector3f getFrameVector(std::string vec);
-    void printVertices();
+    std::vector<GlueDot>& getGlueDots();
+    void printFlatPattern();
 
-    //void UpdateVertex(int i, Eigen::Vector3f& position);
-    //void UpdateFrameVector(std::string vec);
+    Eigen::Vector3f getFlatVertex(int i) const;
+    Eigen::Vector3f getCurrentVertex(int i) const;
+    void setCurrentVertex(int i, const Eigen::Vector3f& position);
+
+    const CoordFrame& getFlatFrame() const;    
+    const CoordFrame& getCurrentFrame() const;
+    void updateCurrentFrame();
+
+    
 
     //Methods
     std::vector<Point> identifyPointTypes(); // only happens once
-    CoordFrame calculateLocalFrame(); // the local frame will update every step
+    CoordFrame calculateFrameAndOrigin(); // current Frame and Origin updates every step using currentPositions    
     std::vector<Point> calculateWeights(); // only happens once
+    
 
 
-    Mechanism actuateBaseCard(float theta);
+    // FIX: need to build a dependency tree? mechanism 0 build on nothing (base card), mechanism 1 builds on mechanism 0, mechanism 2 build on mechanisms 0 and 1. 
+
+
+    
+    // it's starting to come together! I now have the flat Positions, Points types and wiehgts, and Frame!
+    // now to start putting it together and actuating the mechanisms! 
+    //CONTINUE HERE: follow the steps indicated below, starting from the base card to the current mechanism. Once that is done you can ask claude to help you visualize it. 
+
     // have a function Simulate? this function will augment the vertex coordinates accordingly
 
 };
