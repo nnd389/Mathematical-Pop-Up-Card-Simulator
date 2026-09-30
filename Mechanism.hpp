@@ -12,10 +12,15 @@
 //    / | \
 //   /__|__\
 //   g  g  g
+//  bl  b  br    // bl = bottomLeft, b = bottom, br = bottomRight
 //      ^ crease line
+// FIX: my diagram has been upside down this entire time, but that might have been a good thing!
+// meaning, I should assume that one end of the crease is a sphere point, and the other is either a glue point, the origin, or a general point. 
+// I think the sphere point can be identified as the vertex on the crease which is further away from the origin. 
 
 // Assume every v-fold is a simple triangle with 1 crease, three glue points, glue points are at the bottom edge
 // Assume the flat pattern is given in a way such that the vertices are connected cyclicly 
+//FIX: I should really store the bl/b/br indices somehwere instead of finding it every time
 
 enum class PointType{
     gluePoints, 
@@ -24,6 +29,7 @@ enum class PointType{
 };
 
 struct Point { // Every vertex maps to a point. A point has a type and it has weights for the localframe to tell you where it is relative to the true local origin
+    int i; // index of this point (same as vertex index) 
     Eigen::Vector3f weights;
     PointType type; 
 };
@@ -71,6 +77,7 @@ class Mechanism{
 
     public:
     //Constructor
+    //FIX: can get rid of bool base card because we can assume that mech 0 is always the base card
     Mechanism(const std::vector<Eigen::Vector3f>& _flatPos,
               const std::vector<Crease>& _creases,
               const std::vector<GlueDot>& _glueDots, 
@@ -89,52 +96,33 @@ class Mechanism{
               };
 
     //Selectors
+    int getID();
     Point& getPoint(int i);
+    std::vector<Point> getPoints();
+    std::vector<Crease> getCreases();
     std::vector<GlueDot>& getGlueDots();
     void printFlatPattern();
+    void printCurrentPos();
+    void printPoints();
 
     Eigen::Vector3f getFlatVertex(int i) const;
     Eigen::Vector3f getCurrentVertex(int i) const;
+    std::vector<Eigen::Vector3f> getCurrentPos() const;
     void setCurrentVertex(int i, const Eigen::Vector3f& position);
 
     const CoordFrame& getFlatFrame() const;    
     const CoordFrame& getCurrentFrame() const;
     void updateCurrentFrame();
 
-    
-
     //Methods
     std::vector<Point> identifyPointTypes(); // only happens once
     CoordFrame calculateFrameAndOrigin(); // current Frame and Origin updates every step using currentPositions    
     std::vector<Point> calculateWeights(); // only happens once
-    
 
-
-    // FIX: need to build a dependency tree? mechanism 0 build on nothing (base card), mechanism 1 builds on mechanism 0, mechanism 2 build on mechanisms 0 and 1. 
-
-
-    
-    // it's starting to come together! I now have the flat Positions, Points types and wiehgts, and Frame!
-    // now to start putting it together and actuating the mechanisms! 
-    //CONTINUE HERE: follow the steps indicated below, starting from the base card to the current mechanism. Once that is done you can ask claude to help you visualize it. 
-
-    // have a function Simulate? this function will augment the vertex coordinates accordingly
-
+    std::string pointTypeToString(PointType type);
 };
 
 
-
-// mech 0
-// First I update meachanism 0 by updating the rodrigues points. 
-// Then I update the u,v,w vectors for mechanism 0. 
-
-// mech 1
-// Then, I update Mech 1's glue points first using their respective weights on mech 0's u,v,w vectors. 
-// Then I update mechanism 1's sphere points using the radii from the pattern and the updated glue point positions. 
-// with the glue points and sphere point updated, I can update the u,v,w vectors. 
-// Then, I updated the general/boundary points. these boundary points for mech 1 should be given by their weights on mech 1 and u,v,w for mech 1. 
-
-// rodriguez points -> glue points -> sphere points -> general points
 // My theory: All creases on v-fold mechanisms and parrelel fold mechanisms will intersect the central fold of the mechanism they are attatched to. 
 // v-fold mechanisms meet on the card (or extension of the card) and parrallel folds meet at infinity. 
 

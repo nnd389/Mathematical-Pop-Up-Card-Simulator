@@ -1,35 +1,141 @@
 #include "Mechanism.hpp"
+#include "PopUpCard.hpp"
 #include <iostream>
 #include <cmath>
 
 int main(){
+    // Time to make a card!! first lets make the base, card, then make some mechanisms, then put it together in a card!
+    // a mechanism has flatpos, creases, gluedots, baseCard (bool), and id
+
     // Creating the base card
-    std::vector<Point> baseCardPoints = {
-        Point {Eigen::Vector3f{0.0, 0.0, 0.0}, PointType::Origin, nullptr}, //0
-        Point {Eigen::Vector3f{-1.0, 0.0, 0.0}, PointType::Boundary, nullptr}, //1
-        Point {Eigen::Vector3f{-1.0, 1.0, 0.0}, PointType::Boundary, nullptr}, //2
-        Point {Eigen::Vector3f{0.0, 1.0, 0.0}, PointType::Boundary, nullptr}, //3
-        Point {Eigen::Vector3f{1.0, 1.0, 0.0}, PointType::Boundary, nullptr}, //4
-        Point {Eigen::Vector3f{1.0, 0.0, 0.0}, PointType::Boundary, nullptr} //5
+    //   2      3     4
+    //    -------------
+    //   |      |      |
+    //   |      |      |
+    //   |      |      |
+    //   |      |      | 
+    //    -------------
+    //   1      0      5
+    //        origin      (for now!!)
+    //          cf        (cf = central fold)
+    std::vector<Eigen::Vector3f> baseCardPoints = {
+        Eigen::Vector3f{0.0, 0.0, 0.0},  //0
+        Eigen::Vector3f{-1.0, 0.0, 0.0}, //1
+        Eigen::Vector3f{-1.0, 1.0, 0.0}, //2
+        Eigen::Vector3f{0.0, 1.0, 0.0},  //3
+        Eigen::Vector3f{1.0, 1.0, 0.0},  //4
+        Eigen::Vector3f{1.0, 0.0, 0.0}   //5
     };
 
     std::vector<Crease> CentralFold = {
         Crease {0, 3, CreaseType::Valley}
     };
 
-    // these should define the vectors running along the bottom edge and central fold
-    // I think I should replace eigen:vector with a pointer to two points on the card A and B. u = (A-B)/||A-B||
-    CoordFrame baseCardFrame = {
-        {-1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0}, 
+    std::vector<GlueDot> emptyGlues;
+
+    Mechanism baseCard(baseCardPoints, CentralFold, emptyGlues, true, 0);
+
+    // Creating mechanism 1, a simple right angle v-fold
+
+    //      s             2
+    //     /|\           /|\
+    //    / | \         / | \
+    //   /__|__\       /__|__\
+    //   g  g  g      1   0   3
+    //  bl  b  br    (bl = bottomLeft, b = bottom, br = bottomRight)
+    //      o        (o = origin)           
+    //      ^ crease line
+
+    // std::vector<Eigen::Vector3f> mech1Points = {
+    //     Eigen::Vector3f{5.0, 0.0, 0.0},  //0
+    //     Eigen::Vector3f{4.5, 0.0, 0.0}, //1
+    //     Eigen::Vector3f{5.0, 1.0, 0.0}, //2
+    //     Eigen::Vector3f{5.5, 0.0, 0.0},  //3
+    // };
+
+    // std::vector<Crease> mech1Crease = {
+    //     // Crease {i, j, type}
+    //     Crease {0, 2, CreaseType::Mountain}
+    // };
+
+    // // dont forget to call calculate glue weights
+    // float d = std::sqrt(0.125);
+    // std::vector<GlueDot> mech1Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
+    //     // GlueDot {i, n, gluePosition, weights}
+    //     GlueDot {1, 0, Eigen::Vector3f{-d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    //     GlueDot {0, 0, Eigen::Vector3f{0.0, 0.0, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    //     GlueDot {3, 0, Eigen::Vector3f{d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    // };
+
+    // Mechanism mech1(mech1Points, mech1Crease, mech1Glues, false, 1);
+
+
+    //    __s__        2__3__4
+    //   |  |  |       |  |  |
+    //   |  |  |       |  |  |
+    //   |__|__|       |__|__|
+    //   g  g  g      1   0   5
+    //  bl  b  br    (bl = bottomLeft, b = bottom, br = bottomRight)
+    //      o        (o = origin)           
+    //      ^ crease line
+
+
+    std::vector<Eigen::Vector3f> mech1Points = {
+        Eigen::Vector3f{5.0, 0.0, 0.0},  //0
+        Eigen::Vector3f{4.5, 0.0, 0.0},  //1
+        Eigen::Vector3f{4.5, 1.0, 0.0},  //2
+        Eigen::Vector3f{5.0, 1.0, 0.0},  //3
+        Eigen::Vector3f{5.5, 1.0, 0.0},  //4
+        Eigen::Vector3f{5.5, 0.0, 0.0},  //5
     };
 
-    Mechanism baseCard = {baseCardPoints, CentralFold, baseCardFrame, 0};
+    std::vector<Crease> mech1Crease = {
+        // Crease {i, j, type}
+        Crease {0, 3, CreaseType::Mountain}
+    };
 
+    // dont forget to call calculate glue weights
+    float d = std::sqrt(0.125);
+    std::vector<GlueDot> mech1Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
+        // GlueDot {i, n, gluePosition, weights}
+        GlueDot {1, 0, Eigen::Vector3f{-d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 0, Eigen::Vector3f{0.0, 0.0, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 0, Eigen::Vector3f{d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
 
+    Mechanism mech1(mech1Points, mech1Crease, mech1Glues, false, 1);
+
+    
+    // Creating the pop up card!!
+    //        ______________________
+    //       /       .   /         /
+    //      /       /|\ /         /
+    //     /       / | \         /
+    //    /        \_!_/        /
+    //   /__________/__________/
+
+    std::vector<Mechanism> allMechs = {baseCard, mech1};
     constexpr float PI = 3.14159265358979323846f;
-    Mechanism ActivatedCard = baseCard.ActuateBaseCard(PI/2.0);
-    ActivatedCard.printVertices();
+    PopUpCard myPopUpCard(allMechs);
+    myPopUpCard.calculateGlueWeights();
 
+    std::cout << "Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    myPopUpCard.printCurrentPoints();
+
+
+    std::cout << "\n\nACTUATING BY 5 DEGREES";
+    myPopUpCard.actuateWholeCard(0.0);
+    std::cout << "\nNEW Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    myPopUpCard.printCurrentPoints();
+
+    // compile command: g++ -std=c++17 -I/usr/local/include/eigen3 main.cpp PopUpCard.cpp Mechanism.cpp -o popUp
+    // run command: ./popup
+    // visualize command: ./popUp | python3 visualize_card.py --all
+
+
+    // TIME TO TEST IT OUT!!!! 
+    // RRAAAAHHHHH
+    return 0;
 }

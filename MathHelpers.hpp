@@ -5,15 +5,17 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-Eigen::Vector3f RodriguesRotation(const Eigen::Vector3f v, const Eigen::Vector3f k, float theta){
+inline Eigen::Vector3f RodriguesRotation(const Eigen::Vector3f& v, const Eigen::Vector3f& k, float theta){
     // v_rot = v*cos(theta) + (k x v)*sin(theta) + k*(k dot v)*(1-cos(theta))
     // might need to normalize k? check wikipedia
+    // If v is a vector in ℝ3 and k is a unit vector describing an axis of rotation about which v rotates by an angle θ according to the right hand rule, the Rodrigues formula for the rotated vector vrot is
+    // theta rotates counterclockwise
 
     Eigen::Vector3f v_rot = v*cos(theta) + (k.cross(v))*sin(theta) + k*(k.dot(v))*(1-cos(theta));
     return v_rot; 
 };
 
-Eigen::Vector3f IntersectThreeSpheres(const Eigen::Vector3f D, const float rD, const Eigen::Vector3f A, const float rA, const Eigen::Vector3f C, const float rC, const int flag){
+inline Eigen::Vector3f IntersectThreeSpheres(const Eigen::Vector3f& D, const float rD, const Eigen::Vector3f& A, const float rA, const Eigen::Vector3f& C, const float rC, const int flag){
     // gonna use Andrew Glassner's approach for this, which is:
     // 1: solve for two radical planes
     // 2: intersect two planes to get a radical line

@@ -2,10 +2,23 @@
 #include "MathHelpers.hpp"
 #include <iostream>
 #include <stdexcept>
+#include <string>
+
+int Mechanism::getID(){
+    return id;
+};
 
 Point& Mechanism::getPoint(int i){
     return points[i];
-}
+};
+
+std::vector<Point> Mechanism::getPoints(){
+    return points; 
+};
+
+std::vector<Crease> Mechanism::getCreases() {
+    return creases;
+};
 
 std::vector<GlueDot>& Mechanism::getGlueDots(){
     return glueDots;
@@ -20,6 +33,39 @@ void Mechanism::printFlatPattern(){
     }
 };
 
+void Mechanism::printCurrentPos(){
+    for (int i=0; i<currentPos.size(); i++){
+        std::cout<< "\nVertex " << i << " is: (" <<
+        currentPos[i][0] << ", " <<
+        currentPos[i][1] << ", " <<
+        currentPos[i][2] << ")";
+    }
+};
+
+void Mechanism::printPoints(){
+    for (int i=0; i<points.size(); i++){
+        std::cout<< "\nPoint " << i << " with id " << points[i].i << " is type" << pointTypeToString(points[i].type)
+        << " and has weights " << points[i].weights.x() << ", " << points[i].weights.y() << ", " << points[i].weights.z();
+    }
+};
+
+std::string Mechanism::pointTypeToString(PointType type) {
+    switch (type) {
+        case PointType::gluePoints:
+            return "gluePoints";
+
+        case PointType::spherePoints:
+            return "spherePoints";
+
+        case PointType::general:
+            return "general";
+
+        default:
+            return "unknown";
+    }
+}
+
+
 Eigen::Vector3f Mechanism::getFlatVertex(int i) const{
     return flatPos[i];
 }; 
@@ -28,9 +74,13 @@ Eigen::Vector3f Mechanism::getCurrentVertex(int i) const{
     return currentPos[i];
 }; 
 
+std::vector<Eigen::Vector3f> Mechanism::getCurrentPos() const{
+    return currentPos;
+};
+
 void Mechanism::setCurrentVertex(int i, const Eigen::Vector3f& position){
     currentPos[i] = position;
-}
+};
 
 const CoordFrame& Mechanism::getFlatFrame() const{
     return flatFrame;
@@ -58,6 +108,7 @@ std::vector<Point> Mechanism::identifyPointTypes(){
 
     //Initialize general points for all
     for (int i=0; i<flatPos.size(); i++){
+        identifiedPoints[i].i = i; 
         identifiedPoints[i].type = PointType::general; 
         identifiedPoints[i].weights = Eigen::Vector3f::Zero();
     }
@@ -171,8 +222,11 @@ CoordFrame Mechanism::calculateFrameAndOrigin(){ // points and vertices are a on
         bottomIndex = creases[0].i;
     }
 
-    int bottomLeftIndex = bottomIndex-1;
-    int bottomRightIndex = bottomIndex+1;
+    // int bottomLeftIndex = bottomIndex-1;
+    // int bottomRightIndex = bottomIndex+1;
+    int n = static_cast<int>(currentPos.size());
+    int bottomLeftIndex = (bottomIndex - 1 + n) % n;
+    int bottomRightIndex = (bottomIndex + 1) % n;
 
 
     // Calculate the Origin
