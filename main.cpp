@@ -1,7 +1,26 @@
 #include "Mechanism.hpp"
 #include "PopUpCard.hpp"
+#include "Animation.hpp"
 #include <iostream>
 #include <cmath>
+
+// it's hard to capture all the pattern cases, so this code builds on some essential assumptions to create a working card. 
+// we assume the following about the inputted flat pattern:
+// the glue dots are listed in order left to right (smallest x to largest x)
+// the sphere point is the point on the crease with the higher y value, impying that all mechanisms have glue tabs on their lower edges. (no upside down mechanisms in the pattern)
+// no flipping your mechanism to glue it?
+
+
+
+//CONTINUE HERE: I changed a bunch of things so time to debug. 
+// mainly, I added glue tabs which helps find the origin! need to find any time I'm mannually finding bl b br and update it cuz it should come from glutabs
+// FIX: find any time I'm incorrectly finding the origin
+// FIX: instead of specifying where to put glue dots, can change it so that you specify where to position the origin and the glue tab angle. 
+// hrmmm might end up with some problems...
+// how do we deal with mechanisms attatched to 2 different mechanisms?
+
+
+
 
 int main(){
     // Time to make a card!! first lets make the base, card, then make some mechanisms, then put it together in a card!
@@ -124,18 +143,28 @@ int main(){
     myPopUpCard.printCurrentPoints();
 
 
-    std::cout << "\n\nACTUATING BY 5 DEGREES";
+    std::cout << "\n\nACTUATING BY 5 DEGREES"; // actually radians
     myPopUpCard.actuateWholeCard(0.0);
     std::cout << "\nNEW Current vertices: ";
     myPopUpCard.printCurrentVertices();
     myPopUpCard.printCurrentPoints();
 
-    // compile command: g++ -std=c++17 -I/usr/local/include/eigen3 main.cpp PopUpCard.cpp Mechanism.cpp -o popUp
+    // compile command: g++ -std=c++17 -I/usr/local/include/eigen3 main.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp -o popUp
     // run command: ./popup
-    // visualize command: ./popUp | python3 visualize_card.py --all
+    // python visualize command: ./popUp | python3 visualize_card.py --all
+
+    // g++ -std=c++17 -I/usr/local/include/eigen3 -I$(brew --prefix raylib)/include \
+    // main.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp \
+    // -L$(brew --prefix raylib)/lib -lraylib \
+    // -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo \
+    // -o popUp
+
+    //c++ render command: g++ -std=c++17 -I/usr/local/include/eigen3 -I$(brew --prefix raylib)/include main.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp -L$(brew --prefix raylib)/lib -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -o popUp
+
+    // Animate the card!
+    Animation myCardAnimation(myPopUpCard);
+    myCardAnimation.animate();
 
 
-    // TIME TO TEST IT OUT!!!! 
-    // RRAAAAHHHHH
     return 0;
 }

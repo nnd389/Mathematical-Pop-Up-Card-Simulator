@@ -5,12 +5,11 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-inline Eigen::Vector3f RodriguesRotation(const Eigen::Vector3f& v, const Eigen::Vector3f& k, float theta){
-    // v_rot = v*cos(theta) + (k x v)*sin(theta) + k*(k dot v)*(1-cos(theta))
+inline Eigen::Vector3f RodriguesRotation(const Eigen::Vector3f& v, const Eigen::Vector3f& k, float theta){ // theta in radians
     // might need to normalize k? check wikipedia
-    // If v is a vector in ℝ3 and k is a unit vector describing an axis of rotation about which v rotates by an angle θ according to the right hand rule, the Rodrigues formula for the rotated vector vrot is
     // theta rotates counterclockwise
-
+    // If v is a vector in ℝ3 and k is a unit vector describing an axis of rotation about which v rotates by an angle θ according to the right hand rule, the Rodrigues formula for the rotated vector vrot is
+    
     Eigen::Vector3f v_rot = v*cos(theta) + (k.cross(v))*sin(theta) + k*(k.dot(v))*(1-cos(theta));
     return v_rot; 
 };
@@ -19,7 +18,7 @@ inline Eigen::Vector3f IntersectThreeSpheres(const Eigen::Vector3f& D, const flo
     // gonna use Andrew Glassner's approach for this, which is:
     // 1: solve for two radical planes
     // 2: intersect two planes to get a radical line
-    // 3: intersect line and any sphere to get intersection point(s)
+    // 3: intersect line with any sphere to get intersection point(s)
 
     // I'm using D,A,C (instead of A,B,C) just cuz it matches a little better with Andrews notes (and mine for that matter)
 
@@ -74,6 +73,32 @@ inline Eigen::Vector3f IntersectThreeSpheres(const Eigen::Vector3f& D, const flo
     else {
         return (S1.z() >= S2.z()) ? S1 : S2;
     }
+}
+
+inline Eigen::Vector3f lineIntersection( // CHECK: written by chat
+    const Eigen::Vector3f& p1,
+    const Eigen::Vector3f& p2,
+    const Eigen::Vector3f& p3,
+    const Eigen::Vector3f& p4)
+{
+    Eigen::Vector3f d1 = p2 - p1;
+    Eigen::Vector3f d2 = p4 - p3;
+
+    // Solve:
+    // p1 + t*d1 = p3 + s*d2
+
+    Eigen::Matrix<float, 3, 2> A;
+    A.col(0) = d1;
+    A.col(1) = -d2;
+
+    Eigen::Vector3f b = p3 - p1;
+
+    //Eigen::Vector2f ts = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(b);
+    Eigen::Vector2f ts = A.bdcSvd(Eigen::ComputeFullU | Eigen::ComputeFullV).solve(b);
+
+    float t = ts(0);
+
+    return p1 + t * d1;
 }
 
 #endif

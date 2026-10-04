@@ -57,9 +57,18 @@ struct CoordFrame { // a coordinate frame is a set of three unit vectors which c
     Eigen::Vector3f v;
     Eigen::Vector3f w;
     Eigen::Vector3f origin; // origin is going to be it's own point not associated with the pattern
+
     // origin is always defined in x,y,z coordinates, but the origin for currentposition can look different than the flat origin position
     // the origin can always be derived from the current position
     // for now, the origin is defined as the bottom crease vertex position, later the origin might be off the pattern
+};
+
+struct GlueTabs {
+    int bll; // BottomLeftLeft vertex index
+    int bl;  // Bottomleft vertex index
+    int brr; // BottomRightRightvertex index
+    int br;  // BottomRight vertex index
+    int sphere; // sphere index, not part of the glue tabs, but needed to store this info somewhere
 };
 
 class Mechanism{
@@ -74,6 +83,7 @@ class Mechanism{
         std::vector<Point> points; // calculated here, never changes
         CoordFrame flatFrame; // calculated here, does not change
         CoordFrame currentFrame; // calculated here, changes over time
+        GlueTabs glueTabs; // calculated here, never changes. helps find the origin
 
     public:
     //Constructor
@@ -89,6 +99,7 @@ class Mechanism{
               baseCard(_baseCard), 
               id(_id) {
                 currentPos = flatPos;
+                glueTabs = findGlueTabs();
                 points = identifyPointTypes();
                 flatFrame = calculateFrameAndOrigin();
                 currentFrame = flatFrame;
@@ -112,12 +123,15 @@ class Mechanism{
 
     const CoordFrame& getFlatFrame() const;    
     const CoordFrame& getCurrentFrame() const;
+    const GlueTabs& getGlueTabs() const;
     void updateCurrentFrame();
 
     //Methods
+    GlueTabs findGlueTabs(); // only happens once
     std::vector<Point> identifyPointTypes(); // only happens once
     CoordFrame calculateFrameAndOrigin(); // current Frame and Origin updates every step using currentPositions    
     std::vector<Point> calculateWeights(); // only happens once
+    
 
     std::string pointTypeToString(PointType type);
 };

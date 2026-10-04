@@ -90,6 +90,10 @@ const CoordFrame& Mechanism::getCurrentFrame() const{
     return currentFrame;
 };
 
+const GlueTabs& Mechanism::getGlueTabs() const{
+    return glueTabs;
+};
+
 void Mechanism::updateCurrentFrame(){
     currentFrame = calculateFrameAndOrigin();
 }
@@ -103,8 +107,7 @@ void Mechanism::updateCurrentFrame(){
 // the origin should be defined as the intersection of the crease line (in current state) and the crease of the mechanism it is glued to (in current state) (I think)
 // I'll also run into problems where the mechanism crease doesn't intersect the crease of the mechanism below
 std::vector<Point> Mechanism::identifyPointTypes(){
-    std::vector<Point> identifiedPoints(flatPos.size());
-    int sphereIndex;
+    std::vector<Point> identifiedPoints(flatPos.size()); // initialize 
 
     //Initialize general points for all
     for (int i=0; i<flatPos.size(); i++){
@@ -114,16 +117,7 @@ std::vector<Point> Mechanism::identifyPointTypes(){
     }
 
     // Identify sphere point
-    int CreaseIndexI = creases[0].i;
-    int CreaseIndexJ = creases[0].j;
-    Eigen::Vector3f vertA = flatPos[CreaseIndexI];
-    Eigen::Vector3f vertB = flatPos[CreaseIndexJ];
-
-    if (vertA.y() <= vertB.y()) {
-        sphereIndex = CreaseIndexJ;
-    } else {
-        sphereIndex = CreaseIndexI;
-    }
+    int sphereIndex = glueTabs.sphere; 
     identifiedPoints[sphereIndex].type = PointType::spherePoints;
 
     // Identify glue points
@@ -149,23 +143,12 @@ std::vector<Point> Mechanism::calculateWeights(){
 
     std::vector<Point> calculatedPoints = points;
 
-    //Find special points
-    int sphereIndex = -1;
-
-    for (int i=0; i<points.size(); i++){
-        if (points[i].type == PointType::spherePoints){
-            sphereIndex = i;
-            break;
-        }
-    }
-
     // Points
-    Eigen::Vector3f origin = flatFrame.origin; // coordinate
-    Eigen::Vector3f sphere = flatPos[sphereIndex]; // coordinate
+    Eigen::Vector3f flatOrigin = flatFrame.origin; // coordinate
     Eigen::Vector3f crease = flatFrame.v; // vector
 
     for (int i=0; i<flatPos.size(); i++){
-        Eigen::Vector3f p_i = flatPos[i] - origin;
+        Eigen::Vector3f p_i = flatPos[i] - flatOrigin;
         calculatedPoints[i].weights = Eigen::Vector3f::Zero(); 
 
         // find if the point on the right or left of the crease
@@ -203,45 +186,144 @@ std::vector<Point> Mechanism::calculateWeights(){
 
 
 
+
+
+
+GlueTabs Mechanism::findGlueTabs(){
+    // glueDots.size == 3: (3 g's)
+    //        s
+    //       /|\
+    //      / | \
+    //     /  |  \
+    //    /   |   \
+    //   /____|____\
+    //bll  bl/o/br  brr
+    //  g     g     g
+
+
+    // glueDots.size == 4: (4 g's)
+    //        s1
+    //       /|\
+    //      / | \
+    //     / s|2 \
+    //    /  /.\  \
+    //   /__/ . \__\
+    //bll  bl o br  brr
+    //  g  g     g  g
+    GlueTabs myTabs;
+
+    int bottomLeftLeftIndex = -1; 
+    int bottomLeftIndex = -1; 
+    int bottomRightRightIndex = -1;
+    int bottomRightIndex = -1;
+    int sphereIndex = -1; 
+
+    int creaseIndexI = creases[0].i;
+    int creaseIndexJ = creases[0].j;
+
+
+    // in either case the sphere index is the "top" crease index, hard to define top FIX
+    // by "top" I mean the point on the crease that is further away from the origin. FIX: (implement distance constraint way to find sphere point)
+    // I'll just let the "top" be the one with the higher y value for now FIX: 
+    Eigen::Vector3f vertA = flatPos[creaseIndexI];
+    Eigen::Vector3f vertB = flatPos[creaseIndexJ];
+
+    if (vertA.y() <= vertB.y()) {
+        sphereIndex = creaseIndexJ;
+    } else {
+        sphereIndex = creaseIndexI;
+    }
+
+    //        s1
+    //       /|\
+    //      / | \
+    //     / s|2 \
+    //    /  /.\  \
+    //   /__/ . \__\
+    //bll  bl o br  brr
+    //  g  g     g  g
+
+    //FIX: the sphere point isn't always the point witht he hgigher y value, its the point on the crease that is not a glue point (by this def can have multiple)
+    //FIX: how do we deal with two potential pshere points? easy! just pick one! any one!
+    // we only need one sphere point to recalc the fram and reconstruct the other sphere point. 
+    // be careful, need to be consistent on what radii to use
+
+    // go ahead and assume the glue dots are defined in order left to right for now 
+    // FIX: how do we figure out "left" and "right" tabs? like left of the flat crease and right of the flat crease? 
+    if (glueDots.size() == 3){
+        bottomLeftLeftIndex = glueDots[0].i;
+        bottomLeftIndex = glueDots[1].i;
+        bottomRightIndex = glueDots[1].i;
+        bottomRightRightIndex = glueDots[2].i;
+    } else if (glueDots.size() == 4) {
+        bottomLeftLeftIndex = glueDots[0].i;
+        bottomLeftIndex = glueDots[1].i;
+        bottomRightIndex = glueDots[2].i;
+        bottomRightRightIndex = glueDots[3].i;
+    } else if (id == 0) { // if this is the base card, there are no gluepoints. let the origin be the opposite crease point
+        if (sphereIndex == creaseIndexJ){
+            bottomLeftIndex = creaseIndexI;
+            bottomRightIndex = creaseIndexI;
+        } else{ // if sphereIndex == creaseIndexI
+            bottomLeftIndex = creaseIndexJ;
+            bottomRightIndex = creaseIndexJ;
+        }
+        // bottomLeftIndex = bottomRightIndex here
+        int n = static_cast<int>(flatPos.size());
+        bottomLeftLeftIndex = (bottomLeftIndex - 1 + n) % n;
+        bottomRightRightIndex = (bottomLeftIndex + 1) % n;
+    }
+
+
+    myTabs.bll = bottomLeftLeftIndex;
+    myTabs.bl = bottomLeftIndex;
+    myTabs.br = bottomRightIndex;
+    myTabs.brr = bottomRightRightIndex;
+    myTabs.sphere = sphereIndex;
+
+    return myTabs;
+};
+
+
+
 CoordFrame Mechanism::calculateFrameAndOrigin(){ // points and vertices are a one-to-one mapping, where the vertex index corresponds to that point index
     // Initialize and find indices for bottom, bottomLeft, bottomRight, and sphere points
     CoordFrame localFrame;
-    int bottomIndex = -1; // bottom of the crease
-    int sphereIndex = -1; // top of the crease
+    int bottomLeftLeftIndex = glueTabs.bll; 
+    int bottomLeftIndex = glueTabs.bl; 
+    int bottomRightIndex = glueTabs.br;
+    int bottomRightRightIndex = glueTabs.brr;
+    int sphereIndex = glueTabs.sphere; 
 
-    for (int i=0; i<points.size(); i++){
-        if (points[i].type == PointType::spherePoints){
-            sphereIndex = i;
-            break;
-        }
-    }
-
-    if (sphereIndex == creases[0].i){
-        bottomIndex = creases[0].j;
-    } else if (sphereIndex == creases[0].j){
-        bottomIndex = creases[0].i;
-    }
-
-    // int bottomLeftIndex = bottomIndex-1;
-    // int bottomRightIndex = bottomIndex+1;
-    int n = static_cast<int>(currentPos.size());
-    int bottomLeftIndex = (bottomIndex - 1 + n) % n;
-    int bottomRightIndex = (bottomIndex + 1) % n;
+    Eigen::Vector3f bllPos = currentPos[bottomLeftLeftIndex];
+    Eigen::Vector3f blPos = currentPos[bottomLeftIndex];
+    Eigen::Vector3f brPos = currentPos[bottomRightIndex];
+    Eigen::Vector3f brrPos = currentPos[bottomRightRightIndex];
 
 
     // Calculate the Origin
     // For now, let the origin be located at the bottom crease point
     // FIX: this will not always be true^, later the origin will need to be calculated differently
-    localFrame.origin = currentPos[bottomIndex];
+    Eigen::Vector3f localOrigin = lineIntersection(blPos, bllPos, brPos, brrPos); // CHECK: written by chat
+    // FIX: these lines might be:
+    // parrallel - that means this is a parrallel fold mechanism!
+    // askew - possible, the glue dots are moving around a lot
+    // overlapping - you glued on a line instead of a plane, therefore not a pop-uppable mechanism
+
+
 
     // Calculate the frame
-    Eigen::Vector3f u = (currentPos[bottomIndex]-currentPos[bottomLeftIndex]).normalized();
-    Eigen::Vector3f v = (currentPos[bottomIndex]-currentPos[sphereIndex]).normalized();
-    Eigen::Vector3f w = (currentPos[bottomIndex]-currentPos[bottomRightIndex]).normalized();
+    // Eigen::Vector3f u = (localOrigin-currentPos[bottomLeftLeftIndex]).normalized();
+    // Eigen::Vector3f v = (localOrigin-currentPos[sphereIndex]).normalized();
+    // Eigen::Vector3f w = (localOrigin-currentPos[bottomRightRightIndex]).normalized();
+    Eigen::Vector3f u = (currentPos[bottomLeftLeftIndex] - localOrigin).normalized();
+    Eigen::Vector3f v = (currentPos[sphereIndex] - localOrigin).normalized();
+    Eigen::Vector3f w = (currentPos[bottomRightRightIndex] - localOrigin).normalized();
     
     localFrame.u = u;
     localFrame.v = v;
     localFrame.w = w;
+    localFrame.origin = localOrigin;
 
     return localFrame;
 };
