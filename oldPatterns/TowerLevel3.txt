@@ -1,0 +1,228 @@
+    // ---- Mechanism 0 (SVG polyline1) ----
+    std::vector<Eigen::Vector3f> baseCardPoints = {
+        Eigen::Vector3f{91.73592, -147.65976, 0.0},  //0
+        Eigen::Vector3f{54.06336, -147.65976, 0.0},  //1
+        Eigen::Vector3f{54.06336, -72.31464, 0.0},  //2
+        Eigen::Vector3f{91.73592, -72.31464, 0.0},  //3
+        Eigen::Vector3f{129.40848, -72.31464, 0.0},  //4
+        Eigen::Vector3f{129.40848, -147.65976, 0.0},  //5
+    };
+
+    std::vector<Crease> baseCardCrease = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> emptyGlues;
+
+    Mechanism baseCard(baseCardPoints, baseCardCrease, emptyGlues, true, 0);
+
+    // ---- Mechanism 1 (SVG polyline3) ----
+    std::vector<Eigen::Vector3f> mech1Points = {
+        Eigen::Vector3f{189.29448, -82.62072, 0.0},  //0
+        Eigen::Vector3f{156.77496, -82.62072, 0.0},  //1
+        Eigen::Vector3f{156.77496, -50.10091, 0.0},  //2
+        Eigen::Vector3f{189.29448, -50.10091, 0.0},  //3
+        Eigen::Vector3f{221.81472, -50.10091, 0.0},  //4
+        Eigen::Vector3f{221.81472, -82.62072, 0.0},  //5
+    };
+
+    std::vector<Crease> mech1Crease = {
+        Crease {0, 3, CreaseType::Mountain}
+    };
+
+    std::vector<GlueDot> mech1Glues = {
+        GlueDot {1, 0, Eigen::Vector3f{59.71039, -77.46768, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 0, Eigen::Vector3f{91.73592, -83.11464, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 0, Eigen::Vector3f{123.76152, -77.46768, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech1(mech1Points, mech1Crease, mech1Glues, false, 1);
+
+    // ---- Mechanism 2 (SVG polyline2) ----
+    std::vector<Eigen::Vector3f> mech2Points = {
+        Eigen::Vector3f{189.29448, -147.65976, 0.0},  //0
+        Eigen::Vector3f{156.77496, -147.65976, 0.0},  //1
+        Eigen::Vector3f{156.77496, -115.14024, 0.0},  //2
+        Eigen::Vector3f{189.29448, -115.14024, 0.0},  //3
+        Eigen::Vector3f{221.81472, -115.14024, 0.0},  //4
+        Eigen::Vector3f{221.81472, -147.65976, 0.0},  //5
+    };
+
+    std::vector<Crease> mech2Crease = {
+        Crease {0, 3, CreaseType::Mountain}
+    };
+
+    std::vector<GlueDot> mech2Glues = {
+        GlueDot {1, 0, Eigen::Vector3f{59.71039, -109.98720, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 0, Eigen::Vector3f{91.73592, -115.63416, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 0, Eigen::Vector3f{123.76152, -109.98720, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech2(mech2Points, mech2Crease, mech2Glues, false, 2);
+
+    // ---- Mechanism 3 (SVG polyline4) ----
+    std::vector<Eigen::Vector3f> mech3Points = {
+        Eigen::Vector3f{189.29448, -212.69880, 0.0},  //0
+        Eigen::Vector3f{157.26960, -207.05184, 0.0},  //1
+        Eigen::Vector3f{157.26960, -174.53232, 0.0},  //2
+        Eigen::Vector3f{189.29448, -180.17928, 0.0},  //3
+        Eigen::Vector3f{221.32008, -174.53232, 0.0},  //4
+        Eigen::Vector3f{221.32008, -207.05184, 0.0},  //5
+    };
+
+    std::vector<Crease> mech3Crease = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> mech3Glues = {
+        GlueDot {2, 1, Eigen::Vector3f{156.77496, -50.10091, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {3, 1, Eigen::Vector3f{189.29448, -50.10091, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {4, 1, Eigen::Vector3f{221.81472, -50.10091, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {1, 2, Eigen::Vector3f{156.77496, -115.14024, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 2, Eigen::Vector3f{189.29448, -115.14024, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 2, Eigen::Vector3f{221.81472, -115.14024, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech3(mech3Points, mech3Crease, mech3Glues, false, 3);
+
+    // ---- Mechanism 4 (SVG polyline6) ----
+    std::vector<Eigen::Vector3f> mech4Points = {
+        Eigen::Vector3f{286.85376, -82.62072, 0.0},  //0
+        Eigen::Vector3f{262.70856, -82.62072, 0.0},  //1
+        Eigen::Vector3f{262.70856, -58.47538, 0.0},  //2
+        Eigen::Vector3f{286.85376, -58.47538, 0.0},  //3
+        Eigen::Vector3f{310.99896, -58.47538, 0.0},  //4
+        Eigen::Vector3f{310.99896, -82.62072, 0.0},  //5
+    };
+
+    std::vector<Crease> mech4Crease = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> mech4Glues = {
+        GlueDot {1, 3, Eigen::Vector3f{165.51648, -184.37256, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 3, Eigen::Vector3f{189.29448, -180.17928, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 3, Eigen::Vector3f{213.07320, -184.37256, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech4(mech4Points, mech4Crease, mech4Glues, false, 4);
+
+    // ---- Mechanism 5 (SVG polyline5) ----
+    std::vector<Eigen::Vector3f> mech5Points = {
+        Eigen::Vector3f{286.85376, -147.65976, 0.0},  //0
+        Eigen::Vector3f{262.70856, -147.65976, 0.0},  //1
+        Eigen::Vector3f{262.70856, -123.51456, 0.0},  //2
+        Eigen::Vector3f{286.85376, -123.51456, 0.0},  //3
+        Eigen::Vector3f{310.99896, -123.51456, 0.0},  //4
+        Eigen::Vector3f{310.99896, -147.65976, 0.0},  //5
+    };
+
+    std::vector<Crease> mech5Crease = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> mech5Glues = {
+        GlueDot {1, 3, Eigen::Vector3f{165.51648, -208.51776, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 3, Eigen::Vector3f{189.29448, -204.32448, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 3, Eigen::Vector3f{213.07320, -208.51776, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech5(mech5Points, mech5Crease, mech5Glues, false, 5);
+
+    // ---- Mechanism 6 (SVG polyline7) ----
+    std::vector<Eigen::Vector3f> mech6Points = {
+        Eigen::Vector3f{286.85376, -164.40840, 0.0},  //0
+        Eigen::Vector3f{263.07504, -168.60168, 0.0},  //1
+        Eigen::Vector3f{263.07504, -192.74688, 0.0},  //2
+        Eigen::Vector3f{286.85376, -188.55360, 0.0},  //3
+        Eigen::Vector3f{310.63176, -192.74688, 0.0},  //4
+        Eigen::Vector3f{310.63176, -168.60168, 0.0},  //5
+    };
+
+    std::vector<Crease> mech6Crease = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> mech6Glues = {
+        GlueDot {2, 5, Eigen::Vector3f{262.70856, -123.51456, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {3, 5, Eigen::Vector3f{286.85376, -123.51456, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {4, 5, Eigen::Vector3f{310.99896, -123.51456, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {1, 4, Eigen::Vector3f{262.70856, -58.47538, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 4, Eigen::Vector3f{286.85376, -58.47538, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 4, Eigen::Vector3f{310.99896, -58.47538, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech6(mech6Points, mech6Crease, mech6Glues, false, 6);
+
+    // ---- Mechanism 7 (SVG polyline9) ----
+    std::vector<Eigen::Vector3f> mech7Points = {
+        Eigen::Vector3f{359.28936, -82.62072, 0.0},  //0
+        Eigen::Vector3f{341.36208, -82.62072, 0.0},  //1
+        Eigen::Vector3f{341.36208, -64.69322, 0.0},  //2
+        Eigen::Vector3f{359.28936, -64.69322, 0.0},  //3
+        Eigen::Vector3f{377.21664, -64.69322, 0.0},  //4
+        Eigen::Vector3f{377.21664, -82.62072, 0.0},  //5
+    };
+
+    std::vector<Crease> mech7Crease = {
+        Crease {0, 3, CreaseType::Mountain}
+    };
+
+    std::vector<GlueDot> mech7Glues = {
+        GlueDot {1, 6, Eigen::Vector3f{269.19864, -167.51376, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 6, Eigen::Vector3f{286.85376, -170.62632, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 6, Eigen::Vector3f{304.50888, -167.51376, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech7(mech7Points, mech7Crease, mech7Glues, false, 7);
+
+    // ---- Mechanism 8 (SVG polyline8) ----
+    std::vector<Eigen::Vector3f> mech8Points = {
+        Eigen::Vector3f{359.28936, -147.65976, 0.0},  //0
+        Eigen::Vector3f{341.36208, -147.65976, 0.0},  //1
+        Eigen::Vector3f{341.36208, -129.73248, 0.0},  //2
+        Eigen::Vector3f{359.28936, -129.73248, 0.0},  //3
+        Eigen::Vector3f{377.21664, -129.73248, 0.0},  //4
+        Eigen::Vector3f{377.21664, -147.65976, 0.0},  //5
+    };
+
+    std::vector<Crease> mech8Crease = {
+        Crease {0, 3, CreaseType::Mountain}
+    };
+
+    std::vector<GlueDot> mech8Glues = {
+        GlueDot {1, 6, Eigen::Vector3f{269.19864, -185.44104, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 6, Eigen::Vector3f{286.85376, -188.55360, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 6, Eigen::Vector3f{304.50888, -185.44104, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech8(mech8Points, mech8Crease, mech8Glues, false, 8);
+
+    // ---- Mechanism 9 (SVG polyline10) ----
+    std::vector<Eigen::Vector3f> mech9Points = {
+        Eigen::Vector3f{359.28936, -200.26368, 0.0},  //0
+        Eigen::Vector3f{341.63424, -197.15040, 0.0},  //1
+        Eigen::Vector3f{341.63424, -179.22312, 0.0},  //2
+        Eigen::Vector3f{359.28936, -182.33568, 0.0},  //3
+        Eigen::Vector3f{376.94448, -179.22312, 0.0},  //4
+        Eigen::Vector3f{376.94448, -197.15040, 0.0},  //5
+    };
+
+    std::vector<Crease> mech9Crease = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> mech9Glues = {
+        GlueDot {2, 7, Eigen::Vector3f{341.36208, -64.69322, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {3, 7, Eigen::Vector3f{359.28936, -64.69322, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {4, 7, Eigen::Vector3f{377.21664, -64.69322, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {1, 8, Eigen::Vector3f{341.36208, -129.73248, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 8, Eigen::Vector3f{359.28936, -129.73248, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 8, Eigen::Vector3f{377.21664, -129.73248, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech9(mech9Points, mech9Crease, mech9Glues, false, 9);
+
+    std::vector<Mechanism> allMechs = {baseCard, mech1, mech2, mech3, mech4, mech5, mech6, mech7, mech8, mech9};
+    PopUpCard TowerLevel3(allMechs);
+    TowerLevel3.calculateGlueWeights();

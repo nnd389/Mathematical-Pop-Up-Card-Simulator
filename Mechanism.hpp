@@ -78,6 +78,7 @@ class Mechanism{
         std::vector<GlueDot> glueDots; //given by user, never changes. Part of glueDots will be calculated later in the PopUpCard class, but the user needs to call calculateglueweights
         bool baseCard; // given by user, never changes. If this mechanism is the base card, this is turned on. Should only have 1 base card
         int id; // what mechanism is this, given by user, never changes
+        int outlineCount; // the first outlineCount vertices form the cyclic outline; any after are interior points
 
         std::vector<Eigen::Vector3f> currentPos; // calculated here, will change over time
         std::vector<Point> points; // calculated here, never changes
@@ -92,12 +93,14 @@ class Mechanism{
               const std::vector<Crease>& _creases,
               const std::vector<GlueDot>& _glueDots, 
               const bool& _baseCard, // points 4 and 5 on the base card will always be the one we rotate
-              int _id) 
+              int _id,
+              int _outlineCount = -1) // -1 = every vertex is on the outline
               : flatPos(_flatPos),
               creases(_creases), 
               glueDots(_glueDots),
               baseCard(_baseCard), 
-              id(_id) {
+              id(_id),
+              outlineCount(_outlineCount < 0 ? static_cast<int>(_flatPos.size()) : _outlineCount) {
                 currentPos = flatPos;
                 glueTabs = findGlueTabs();
                 points = identifyPointTypes();
@@ -115,6 +118,7 @@ class Mechanism{
     void printFlatPattern();
     void printCurrentPos();
     void printPoints();
+    void printCurrentFrame();
 
     Eigen::Vector3f getFlatVertex(int i) const;
     Eigen::Vector3f getCurrentVertex(int i) const;

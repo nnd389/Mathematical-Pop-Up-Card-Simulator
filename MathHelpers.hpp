@@ -66,12 +66,14 @@ inline Eigen::Vector3f IntersectThreeSpheres(const Eigen::Vector3f& D, const flo
     }
     // decide how to handle - if you continue to use this function for parrallel folds you'll definitely run into at least one of these issues 
 
-    // want the zero flag to return the S point with the lower z value
+    // want the zero flag to return the S point with the lower z value?
     if (flag == 0) {
-    return (S1.z() < S2.z()) ? S1 : S2;
+        //return (S1.z() < S2.z()) ? S1 : S2;
+        return S1;
     }
     else {
-        return (S1.z() >= S2.z()) ? S1 : S2;
+        //return (S1.z() >= S2.z()) ? S1 : S2;
+        return S2;
     }
 }
 

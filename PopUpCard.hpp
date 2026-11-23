@@ -25,6 +25,7 @@ class PopUpCard {
 
     void printCurrentVertices();
     void printCurrentPoints();
+    void printCurrentFrames();
     std::vector<Eigen::Vector3f> returnCurrentVertices();
     std::vector<Mechanism>& getMechanisms();
 

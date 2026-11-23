@@ -49,6 +49,28 @@ void Mechanism::printPoints(){
     }
 };
 
+void Mechanism::printCurrentFrame(){
+    std::cout<< "\nFrame origin is: (" <<
+    currentFrame.origin.x() << ", " <<
+    currentFrame.origin.y() << ", " <<
+    currentFrame.origin.z() << ")";
+
+    std::cout<< "\nFrame u is: (" <<
+    currentFrame.u.x() << ", " <<
+    currentFrame.u.y() << ", " <<
+    currentFrame.u.z() << ")";
+
+    std::cout<< "\nFrame v is: (" <<
+    currentFrame.v.x() << ", " <<
+    currentFrame.v.y() << ", " <<
+    currentFrame.v.z() << ")";
+
+    std::cout<< "\nFrame w is: (" <<
+    currentFrame.w.x() << ", " <<
+    currentFrame.w.y() << ", " <<
+    currentFrame.w.z() << ")";
+};
+
 std::string Mechanism::pointTypeToString(PointType type) {
     switch (type) {
         case PointType::gluePoints:
@@ -228,10 +250,27 @@ GlueTabs Mechanism::findGlueTabs(){
     Eigen::Vector3f vertA = flatPos[creaseIndexI];
     Eigen::Vector3f vertB = flatPos[creaseIndexJ];
 
+    // default: the crease point with the higher y value
     if (vertA.y() <= vertB.y()) {
         sphereIndex = creaseIndexJ;
     } else {
         sphereIndex = creaseIndexI;
+    }
+
+    // if that point is a glue point it can't be the sphere point, so use the opposite crease point
+    auto isGluePoint = [&](int vertIndex) {
+        for (const GlueDot& dot : glueDots) {
+            if (dot.i == vertIndex) return true;
+        }
+        return false;
+    };
+
+    if (isGluePoint(sphereIndex)) {
+        int otherIndex = (sphereIndex == creaseIndexI) ? creaseIndexJ : creaseIndexI;
+        // if both crease points are glued there is no valid sphere point, so keep the original choice
+        if (!isGluePoint(otherIndex)) {
+            sphereIndex = otherIndex;
+        }
     }
 
     //        s1
@@ -250,17 +289,19 @@ GlueTabs Mechanism::findGlueTabs(){
 
     // go ahead and assume the glue dots are defined in order left to right for now 
     // FIX: how do we figure out "left" and "right" tabs? like left of the flat crease and right of the flat crease? 
-    if (glueDots.size() == 3){
+    // FIX: this is such a bad way to find the origin?? there could be who knows how many glue dots! let the origin be the intersection with the crease and the spanning gulley! 
+    
+    if (glueDots.size() == 3){ // a regular v fold
         bottomLeftLeftIndex = glueDots[0].i;
         bottomLeftIndex = glueDots[1].i;
         bottomRightIndex = glueDots[1].i;
         bottomRightRightIndex = glueDots[2].i;
-    } else if (glueDots.size() == 4) {
+    } else if (glueDots.size() == 4) { // a handlebar v-fold // FIX: Parrallel folds also have 4 glue dots, need to handle parrallel fold mechanisms differently
         bottomLeftLeftIndex = glueDots[0].i;
         bottomLeftIndex = glueDots[1].i;
         bottomRightIndex = glueDots[2].i;
         bottomRightRightIndex = glueDots[3].i;
-    } else if (id == 0) { // if this is the base card, there are no gluepoints. let the origin be the opposite crease point
+    } else { // no glue dots (base card), all glue dots (floating plane), or other amount of glue dots. origin is the non-sphere crease points
         if (sphereIndex == creaseIndexJ){
             bottomLeftIndex = creaseIndexI;
             bottomRightIndex = creaseIndexI;
@@ -269,9 +310,56 @@ GlueTabs Mechanism::findGlueTabs(){
             bottomRightIndex = creaseIndexJ;
         }
         // bottomLeftIndex = bottomRightIndex here
-        int n = static_cast<int>(flatPos.size());
-        bottomLeftLeftIndex = (bottomLeftIndex - 1 + n) % n;
-        bottomRightRightIndex = (bottomLeftIndex + 1) % n;
+        int n = outlineCount; // neighbours come from the outline only, not interior points
+        // // the two polygon neighbors of the origin point are the left and right wing points. Which neighbor is which depends
+        // // on the crease direction (origin -> sphere) and NOT on the index order, so decide by the side of the crease,
+        // // using the same convention as calculateWeights (crossZ > 0 = left = u side)
+        int nextIndex = (bottomLeftIndex + 1) % n;
+        int prevIndex = (bottomLeftIndex - 1 + n) % n;
+        Eigen::Vector3f creaseDir = flatPos[sphereIndex] - flatPos[bottomLeftIndex];
+        Eigen::Vector3f toNext = flatPos[nextIndex] - flatPos[bottomLeftIndex];
+        float crossZ = creaseDir.x() * toNext.y() - creaseDir.y() * toNext.x();
+        if (crossZ > 0) {
+            bottomLeftLeftIndex = nextIndex;
+            bottomRightRightIndex = prevIndex;
+        } else {
+            bottomLeftLeftIndex = prevIndex;
+            bottomRightRightIndex = nextIndex;
+        }
+        // u and w must point at GLUE points: a general point's position is rebuilt from the frame, so a frame built from
+        // one is circular and never moves. If bll/brr is a general point, keep walking the outline away from the
+        // origin until we hit a glue point that is still on the same side of the crease.
+        if (!glueDots.empty()) {
+            auto sideOfCrease = [&](int idx) {
+                Eigen::Vector3f p = flatPos[idx] - flatPos[bottomLeftIndex];
+                return creaseDir.x() * p.y() - creaseDir.y() * p.x();
+            };
+            auto findGlueOnSide = [&](int wing) {
+                if (isGluePoint(wing)) return wing;
+                int step = (wing == (bottomLeftIndex + 1) % n) ? 1 : -1; // direction leading away from the origin
+                float side = sideOfCrease(wing);
+                int idx = wing;
+                for (int k = 0; k < n; k++) {
+                    idx = ((idx + step) % n + n) % n;
+                    if (idx == bottomLeftIndex) break; // wrapped all the way round
+                    if (sideOfCrease(idx) * side <= 0) continue; // other side of (or on) the crease
+                    if (isGluePoint(idx)) return idx;
+                }
+                return wing; // no glue point on that side; keep the original
+            };
+            bottomLeftLeftIndex = findGlueOnSide(bottomLeftLeftIndex);
+            bottomRightRightIndex = findGlueOnSide(bottomRightRightIndex);
+        }
+        // bottomLeftLeftIndex = (bottomLeftIndex + 1) % n;
+        // bottomRightRightIndex = (bottomLeftIndex - 1 + n) % n; // might need to switch back to this for tower 2?
+
+        std::cout<< "\nCurrently on base card! ID is:  " << id;
+        std::cout<< "\nBLL is: " << bottomLeftLeftIndex;
+        std::cout<< "\nBL is: " << bottomLeftIndex;
+        std::cout<< "\nBRR is: " << bottomRightRightIndex;
+        std::cout<< "\nBR is: " << bottomRightIndex;
+        std::cout<< "\nSphere Index is: " << sphereIndex;
+        // sphereIndex = -1; the base card shouldn't have a sphere index? hrmmm but it might be used for the frame anyways
     }
 
 

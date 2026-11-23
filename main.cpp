@@ -1,6 +1,8 @@
 #include "Mechanism.hpp"
 #include "PopUpCard.hpp"
 #include "Animation.hpp"
+#include "FoldLoader.hpp"
+#include <string>
 #include <iostream>
 #include <cmath>
 
@@ -21,145 +23,67 @@
 
 
 
+//CONTINUE HERE:
+// I had cluade write a paerse for me: foldLoader.hpp, it worked pretty well but also has room for problems!
+// todo:
+// fix how the origin is calculated, should be crease line intersection not glue tab intersection with spanning gulley
+// fix patches, frame should be defined as connecting two patches, might have to add in a patch class
+// there are problems with points that are inside a patch, try to fix those
+int main(int argc, char** argv){
+    // The card now comes from a flat-pattern file (see FoldLoader.hpp for the file format and conventions).
+    // usage: ./popUp [pattern.txt] [scale]     (the old hand-built Tower Level 1 is in git history)
+    std::string patternFile = (argc > 1) ? argv[1] : "popUpCard.txt";
+    float scale = (argc > 2) ? std::stof(argv[2]) : 1.0f;
 
-int main(){
-    // Time to make a card!! first lets make the base, card, then make some mechanisms, then put it together in a card!
-    // a mechanism has flatpos, creases, gluedots, baseCard (bool), and id
-
-    // Creating the base card
-    //   2      3     4
-    //    -------------
-    //   |      |      |
-    //   |      |      |
-    //   |      |      |
-    //   |      |      | 
-    //    -------------
-    //   1      0      5
-    //        origin      (for now!!)
-    //          cf        (cf = central fold)
-    std::vector<Eigen::Vector3f> baseCardPoints = {
-        Eigen::Vector3f{0.0, 0.0, 0.0},  //0
-        Eigen::Vector3f{-1.0, 0.0, 0.0}, //1
-        Eigen::Vector3f{-1.0, 1.0, 0.0}, //2
-        Eigen::Vector3f{0.0, 1.0, 0.0},  //3
-        Eigen::Vector3f{1.0, 1.0, 0.0},  //4
-        Eigen::Vector3f{1.0, 0.0, 0.0}   //5
-    };
-
-    std::vector<Crease> CentralFold = {
-        Crease {0, 3, CreaseType::Valley}
-    };
-
-    std::vector<GlueDot> emptyGlues;
-
-    Mechanism baseCard(baseCardPoints, CentralFold, emptyGlues, true, 0);
-
-    // Creating mechanism 1, a simple right angle v-fold
-
-    //      s             2
-    //     /|\           /|\
-    //    / | \         / | \
-    //   /__|__\       /__|__\
-    //   g  g  g      1   0   3
-    //  bl  b  br    (bl = bottomLeft, b = bottom, br = bottomRight)
-    //      o        (o = origin)           
-    //      ^ crease line
-
-    // std::vector<Eigen::Vector3f> mech1Points = {
-    //     Eigen::Vector3f{5.0, 0.0, 0.0},  //0
-    //     Eigen::Vector3f{4.5, 0.0, 0.0}, //1
-    //     Eigen::Vector3f{5.0, 1.0, 0.0}, //2
-    //     Eigen::Vector3f{5.5, 0.0, 0.0},  //3
-    // };
-
-    // std::vector<Crease> mech1Crease = {
-    //     // Crease {i, j, type}
-    //     Crease {0, 2, CreaseType::Mountain}
-    // };
-
-    // // dont forget to call calculate glue weights
-    // float d = std::sqrt(0.125);
-    // std::vector<GlueDot> mech1Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
-    //     // GlueDot {i, n, gluePosition, weights}
-    //     GlueDot {1, 0, Eigen::Vector3f{-d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
-    //     GlueDot {0, 0, Eigen::Vector3f{0.0, 0.0, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
-    //     GlueDot {3, 0, Eigen::Vector3f{d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
-    // };
-
-    // Mechanism mech1(mech1Points, mech1Crease, mech1Glues, false, 1);
-
-
-    //    __s__        2__3__4
-    //   |  |  |       |  |  |
-    //   |  |  |       |  |  |
-    //   |__|__|       |__|__|
-    //   g  g  g      1   0   5
-    //  bl  b  br    (bl = bottomLeft, b = bottom, br = bottomRight)
-    //      o        (o = origin)           
-    //      ^ crease line
-
-
-    std::vector<Eigen::Vector3f> mech1Points = {
-        Eigen::Vector3f{5.0, 0.0, 0.0},  //0
-        Eigen::Vector3f{4.5, 0.0, 0.0},  //1
-        Eigen::Vector3f{4.5, 1.0, 0.0},  //2
-        Eigen::Vector3f{5.0, 1.0, 0.0},  //3
-        Eigen::Vector3f{5.5, 1.0, 0.0},  //4
-        Eigen::Vector3f{5.5, 0.0, 0.0},  //5
-    };
-
-    std::vector<Crease> mech1Crease = {
-        // Crease {i, j, type}
-        Crease {0, 3, CreaseType::Mountain}
-    };
-
-    // dont forget to call calculate glue weights
-    float d = std::sqrt(0.125);
-    std::vector<GlueDot> mech1Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
-        // GlueDot {i, n, gluePosition, weights}
-        GlueDot {1, 0, Eigen::Vector3f{-d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
-        GlueDot {0, 0, Eigen::Vector3f{0.0, 0.0, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
-        GlueDot {5, 0, Eigen::Vector3f{d, d, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
-    };
-
-    Mechanism mech1(mech1Points, mech1Crease, mech1Glues, false, 1);
-
-    
-    // Creating the pop up card!!
-    //        ______________________
-    //       /       .   /         /
-    //      /       /|\ /         /
-    //     /       / | \         /
-    //    /        \_!_/        /
-    //   /__________/__________/
-
-    std::vector<Mechanism> allMechs = {baseCard, mech1};
-    constexpr float PI = 3.14159265358979323846f;
+    std::vector<Mechanism> allMechs = loadCard(patternFile, scale);
     PopUpCard myPopUpCard(allMechs);
     myPopUpCard.calculateGlueWeights();
 
-    std::cout << "Current vertices: ";
-    myPopUpCard.printCurrentVertices();
-    myPopUpCard.printCurrentPoints();
 
 
-    std::cout << "\n\nACTUATING BY 5 DEGREES"; // actually radians
+
+
+
+    float PI = 3.14159265359;
+    std::cout << "\n\nACTUATING BY 0 DEGREES"; // actually radians
     myPopUpCard.actuateWholeCard(0.0);
     std::cout << "\nNEW Current vertices: ";
     myPopUpCard.printCurrentVertices();
-    myPopUpCard.printCurrentPoints();
+    std::cout << "\n\n";
 
-    // compile command: g++ -std=c++17 -I/usr/local/include/eigen3 main.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp -o popUp
+    std::cout << "\n\nACTUATING BY Pi/5 DEGREES"; // actually radians
+    myPopUpCard.actuateWholeCard(-PI/5.0);
+    std::cout << "\nNEW Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    std::cout << "\n\n";
+
+    std::cout << "\n\nACTUATING BY 2Pi/5 DEGREES"; // actually radians
+    myPopUpCard.actuateWholeCard(-2.0*PI/5.0);
+    std::cout << "\nNEW Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    std::cout << "\n\n";
+
+    std::cout << "\n\nACTUATING BY 3Pi/5 DEGREES"; // actually radians
+    myPopUpCard.actuateWholeCard(-3.0*PI/5.0);
+    std::cout << "\nNEW Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    std::cout << "\n\n";
+
+    std::cout << "\n\nACTUATING BY 4Pi/5 DEGREES"; // actually radians
+    myPopUpCard.actuateWholeCard(-4.0*PI/5.0);
+    std::cout << "\nNEW Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    std::cout << "\n\n";
+
+    std::cout << "\n\nACTUATING BY 5Pi/5 DEGREES"; // actually radians
+    //myPopUpCard.actuateWholeCard(-4.999*PI/5.0);
+    std::cout << "\nNEW Current vertices: ";
+    myPopUpCard.printCurrentVertices();
+    std::cout << "\n\n";
+
     // run command: ./popup
-    // python visualize command: ./popUp | python3 visualize_card.py --all
-
-    // g++ -std=c++17 -I/usr/local/include/eigen3 -I$(brew --prefix raylib)/include \
-    // main.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp \
-    // -L$(brew --prefix raylib)/lib -lraylib \
-    // -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo \
-    // -o popUp
-
-    //c++ render command: g++ -std=c++17 -I/usr/local/include/eigen3 -I$(brew --prefix raylib)/include main.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp -L$(brew --prefix raylib)/lib -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -o popUp
+    // python visualize command: python3 visualize_flat.py TowerLevel2FlatPattern.txt
+    // c++ render command: g++ -std=c++17 -I/usr/local/include/eigen3 -I$(brew --prefix nlohmann-json)/include -I$(brew --prefix raylib)/include main.cpp FoldLoader.cpp PopUpCard.cpp Mechanism.cpp Animation.cpp -L$(brew --prefix raylib)/lib -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo -o popUp
 
     // Animate the card!
     Animation myCardAnimation(myPopUpCard);

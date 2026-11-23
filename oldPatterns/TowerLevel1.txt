@@ -1,0 +1,152 @@
+    //Creating the Tower Level 1!!!
+
+    // Creating the base card
+    //   2      3     4
+    //    -------------
+    //   |      |      |
+    //   |      |      |
+    //   |      |      |
+    //   |      |      | 
+    //    -------------
+    //   1      0      5
+    //        origin      (for now!!)
+    //          cf        (cf = central fold)
+
+
+    
+    std::vector<Eigen::Vector3f> baseCardPoints = {
+        Eigen::Vector3f{139.5180, -153.6278, 0.0},  //0
+        Eigen::Vector3f{88.0178, -153.6278, 0.0}, //1
+        Eigen::Vector3f{88.0178, -50.6272, 0.0}, //2
+        Eigen::Vector3f{139.5180, -50.6272, 0.0},  //3
+        Eigen::Vector3f{191.0182, -50.6272, 0.0},  //4
+        Eigen::Vector3f{191.0182, -153.6278, 0.0}   //5
+    };
+
+    std::vector<Crease> CentralFold = {
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> emptyGlues;
+
+    Mechanism baseCard(baseCardPoints, CentralFold, emptyGlues, true, 0);
+
+    // Mechanism 1, Level 1 A: a simple right angle v-fold
+    //
+    //    ____s____        2____3____4
+    //   |    |    |       |    |    |
+    //   |____|____|       |____|____|
+    //   g    g    g       1    0    5
+    //bll  bl/br  brr    (bl = bottomLeft, b = bottom, br = bottomRight)
+    //      o            (o = origin)           
+    //      ^ crease line
+
+    std::vector<Eigen::Vector3f> mech1Points = {
+        Eigen::Vector3f{272.88648, -64.715832, 0.0},  //0
+        Eigen::Vector3f{228.43008, -64.715832, 0.0},  //1
+        Eigen::Vector3f{228.43008, -20.259720, 0.0},  //2
+        Eigen::Vector3f{272.88648, -20.259720, 0.0},  //3
+        Eigen::Vector3f{317.34216, -20.259720, 0.0},  //4
+        Eigen::Vector3f{317.34216, -64.715832, 0.0},  //5
+    };
+
+    std::vector<Crease> mech1Crease = {
+        // Crease {i, j, type}
+        Crease {0, 3, CreaseType::Mountain}
+    };
+
+    std::vector<GlueDot> mech1Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
+        // GlueDot {i, n, gluePosition, weights} // i is the vert index you are gluing, n is the mech index you are gluing onto
+        GlueDot {1, 0, Eigen::Vector3f{95.73696, -57.671496, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 0, Eigen::Vector3f{139.51800, -65.391264, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 0, Eigen::Vector3f{183.2990, -57.6715, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech1(mech1Points, mech1Crease, mech1Glues, false, 1);
+
+    
+    // Mechanism 2, Level 1 B: a simple right angle v-fold
+    //
+    //    ____s____        2____3____4
+    //   |    |    |       |    |    |
+    //   |____|____|       |____|____|
+    //   g    g    g       1    0    5
+    //bll  bl/br  brr    (bl = bottomLeft, b = bottom, br = bottomRight)
+    //      o            (o = origin)           
+    //      ^ crease line
+
+
+    std::vector<Eigen::Vector3f> mech2Points = {
+        Eigen::Vector3f{272.88648, -153.62784, 0.0},  //0
+        Eigen::Vector3f{228.43008, -153.62784, 0.0},  //1
+        Eigen::Vector3f{228.43008, -109.17216, 0.0},  //2
+        Eigen::Vector3f{272.88648, -109.17216, 0.0},  //3
+        Eigen::Vector3f{317.34216, -109.17216, 0.0},  //4
+        Eigen::Vector3f{317.34216, -153.62784, 0.0},  //5
+    };
+
+    std::vector<Crease> mech2Crease = {
+        // Crease {i, j, type}
+        Crease {0, 3, CreaseType::Mountain}
+    };
+
+    std::vector<GlueDot> mech2Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
+        // GlueDot {i, n, gluePosition, weights} // i is the vert index you are gluing, n is the mech index you are gluing onto
+        GlueDot {1, 0, Eigen::Vector3f{95.73696, -102.127680, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 0, Eigen::Vector3f{139.51800, -109.847520, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 0, Eigen::Vector3f{183.2990, -102.1277, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech2(mech2Points, mech2Crease, mech2Glues, false, 2);
+
+    // Mechanism 3, Level 1 C: A floating plane!
+    // not even sure if I can have a mechanisms with all glue points and no sphere points but lets try!
+    //     2       4
+    //     |\     /|
+    //     | \ 3 / |
+    //     |  \⌄/  |     
+    //     |   |   |      
+    //    1 \  |  / 5
+    //       \ | /
+    //        \|/
+    //         0    
+
+    std::vector<Eigen::Vector3f> mech3Points = {
+        Eigen::Vector3f{272.88648, -242.53992, 0.0},  //0
+        Eigen::Vector3f{229.10544, -234.82080, 0.0},  //1
+        Eigen::Vector3f{229.10544, -190.36440, 0.0},  //2
+        Eigen::Vector3f{272.88648, -198.08424, 0.0},  //3
+        Eigen::Vector3f{316.66680, -190.36440, 0.0},  //4
+        Eigen::Vector3f{316.66680, -234.82080, 0.0},  //5
+    };
+
+    std::vector<Crease> mech3Crease = {
+        // Crease {i, j, type}
+        Crease {0, 3, CreaseType::Valley}
+    };
+
+    std::vector<GlueDot> mech3Glues = { // this part is tricky because it's up to the artists to make sure that lengths stay the same 
+        // GlueDot {i, n, gluePosition, weights} // i is the vert index you are gluing, n is the mech index you are gluing onto
+        GlueDot {2, 1, Eigen::Vector3f{228.43008, -20.259720, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {3, 1, Eigen::Vector3f{272.88648, -20.259720, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {4, 1, Eigen::Vector3f{317.34216, -20.259720, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+
+        GlueDot {1, 2, Eigen::Vector3f{228.43008, -109.17216, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {0, 2, Eigen::Vector3f{272.88648, -109.17216, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+        GlueDot {5, 2, Eigen::Vector3f{317.34216, -109.17216, 0.0}, Eigen::Vector3f{0.0,0.0,0.0}},
+    };
+
+    Mechanism mech3(mech3Points, mech3Crease, mech3Glues, false, 3);
+
+    // Creating the pop up card!!
+    //        ______________________
+    //       /       .   /         /
+    //      /       /|\ /         /
+    //     /       / | \         /
+    //    /        \_!_/        /
+    //   /__________/__________/
+
+    std::vector<Mechanism> allMechs = {baseCard, mech1, mech2, mech3};
+    PopUpCard myPopUpCard(allMechs);
+    myPopUpCard.calculateGlueWeights(); // IMPORTANT FIX: this should really be part of the class constructor, we don't want the user forgetting to call this
+

@@ -40,6 +40,15 @@ void PopUpCard::printCurrentPoints(){
 };
 
 
+void PopUpCard::printCurrentFrames(){
+    for (Mechanism& mech : mechanisms){
+        int m = mech.getID();
+        std::cout << "\n\nMechanism " << m << " frame: ";
+        mech.printCurrentFrame();
+    }
+};
+
+
 void PopUpCard::calculateGlueWeights(){
     for (Mechanism& mechanism : mechanisms) {
         std::vector<GlueDot>& glueDots = mechanism.getGlueDots();
@@ -95,18 +104,31 @@ void PopUpCard::calculateGlueWeights(){
 
 // we assume the base card is always a valley fold
 // also assume we always update from the flat position
-void PopUpCard::actuateBaseCard(float theta){ // rotate points 4 and 5 around the central crease on Mechanism 0 and update the current position of the base card
-    Eigen::Vector3f v4 = mechanisms[0].getFlatVertex(4); 
-    Eigen::Vector3f v5 = mechanisms[0].getFlatVertex(5);
-    Eigen::Vector3f k = mechanisms[0].getFlatFrame().v; // We only use this function for the base card, and v should NEVER change for the base card
+void PopUpCard::actuateBaseCard(float theta){ // rotate every base card point to the right of the central crease about that crease, and update the base card's current position
+    Mechanism& base = mechanisms[0];
+    const CoordFrame& flatFrame = base.getFlatFrame();
+    Eigen::Vector3f k = flatFrame.v; // We only use this function for the base card, and v should NEVER change for the base card
+    Eigen::Vector3f pivot = flatFrame.origin; // a point on the crease
 
-    // Update our current position and current frame (update frame by updating the vectors and origin of this frame)
-    mechanisms[0].setCurrentVertex(4, RodriguesRotation(v4, k, theta));
-    mechanisms[0].setCurrentVertex(5, RodriguesRotation(v5, k, theta));
-    //CHECK: chat thinks theres a problem with this rodrigues rotation formula, that its rotating about a line passing thorugh (0,0,0)
+    // v is a unit vector, so crossZ is the signed distance from the crease line.
+    // Same convention as calculateGlueWeights: crossZ > 0 = left (u side), crossZ < 0 = right (w side).
+    // Points within 1% of the crease length of the crease count as on the crease and don't rotate.
+    float tol = 0.01f * (base.getFlatVertex(base.getGlueTabs().sphere) - pivot).norm();
 
-    mechanisms[0].updateCurrentFrame();
+    for (int i = 0; i < base.getPoints().size(); i++){
+        Eigen::Vector3f flatV = base.getFlatVertex(i);
+        Eigen::Vector3f p = flatV - pivot;
+        float crossZ = k.x() * p.y() - k.y() * p.x();
+        if (crossZ < -tol){ // right of the crease: rotate about the crease line (the pivot makes sure the rotation line goes through our crease)
+            base.setCurrentVertex(i, pivot + RodriguesRotation(p, k, theta));
+        } else { // left of (or on) the crease: stays flat
+            base.setCurrentVertex(i, flatV);
+        }
+    }
+
+    base.updateCurrentFrame();
 };
+
 
 
 
@@ -166,25 +188,31 @@ void PopUpCard::actuateMechanism(int i){
     // To calculate the sphere point's position, need three centers and three radii
     // the centers are given by the bottomleftleft, origin, and bottomrightright CURRENT vertices
     // the radii are given by the centers in FLAT state and the FLAT ORIGIN
-    Eigen::Vector3f sphereFlatPos = mechI.getFlatVertex(sphereIndex);
-    Eigen::Vector3f originFlatPos = mechI.getFlatFrame().origin;
+    bool sphereIsGlued = std::any_of(glueDots.begin(), glueDots.end(),
+        [&](const GlueDot& g){ return g.i == sphereIndex; });
 
-    Eigen::Vector3f bottomLeftLeftFlatPos = mechI.getFlatVertex(bottomLeftLeftIndex);
-    Eigen::Vector3f bottomLeftLeftCurrentPos = mechI.getCurrentVertex(bottomLeftLeftIndex);
+    if (!sphereIsGlued) { // only calculate the sphere position if the sphere point is not glued
+        Eigen::Vector3f sphereFlatPos = mechI.getFlatVertex(sphereIndex);
+        Eigen::Vector3f originFlatPos = mechI.getFlatFrame().origin;
 
-    Eigen::Vector3f bottomRightRightFlatPos = mechI.getFlatVertex(bottomRightRightIndex);
-    Eigen::Vector3f bottomRightRightCurrentPos = mechI.getCurrentVertex(bottomRightRightIndex);
+        Eigen::Vector3f bottomLeftLeftFlatPos = mechI.getFlatVertex(bottomLeftLeftIndex);
+        Eigen::Vector3f bottomLeftLeftCurrentPos = mechI.getCurrentVertex(bottomLeftLeftIndex);
 
-    float r1 = (sphereFlatPos - bottomLeftLeftFlatPos).norm();
-    float r2 = (sphereFlatPos - originFlatPos).norm(); 
-    float r3 = (sphereFlatPos - bottomRightRightFlatPos).norm();
+        Eigen::Vector3f bottomRightRightFlatPos = mechI.getFlatVertex(bottomRightRightIndex);
+        Eigen::Vector3f bottomRightRightCurrentPos = mechI.getCurrentVertex(bottomRightRightIndex);
 
-    // if crease type = mountain, flag = 1, if crease type = valley, flag = 0
-    int flag = (creases[0].type == CreaseType::Mountain) ? 1 : 0;
-    Eigen::Vector3f currentOrigin = mechI.getCurrentFrame().origin;
-    Eigen::Vector3f newSpherePos = IntersectThreeSpheres(bottomLeftLeftCurrentPos, r1, currentOrigin, r2, bottomRightRightCurrentPos, r3, flag);
+        float r1 = (sphereFlatPos - bottomLeftLeftFlatPos).norm();
+        float r2 = (sphereFlatPos - originFlatPos).norm(); 
+        float r3 = (sphereFlatPos - bottomRightRightFlatPos).norm();
 
-    mechI.setCurrentVertex(sphereIndex, newSpherePos);
+        // if crease type = mountain, flag = 1, if crease type = valley, flag = 0
+        int flag = (creases[0].type == CreaseType::Mountain) ? 1 : 0;
+        Eigen::Vector3f currentOrigin = mechI.getCurrentFrame().origin;
+        Eigen::Vector3f newSpherePos = IntersectThreeSpheres(bottomLeftLeftCurrentPos, r1, currentOrigin, r2, bottomRightRightCurrentPos, r3, flag);
+
+        mechI.setCurrentVertex(sphereIndex, newSpherePos);
+    }
+    
     mechI.updateCurrentFrame(); // update the frame and origin (origin was already updated but sure)
     // now that I updated the sphere points and glue points I can update the frame
 
